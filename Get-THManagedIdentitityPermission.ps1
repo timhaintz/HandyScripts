@@ -71,17 +71,14 @@ function Get-THManagedIdentityPermission
     <h2>Managed Identity Permission Report</h2>
     <p>The report below shows the assigned permissions to Managed Identities</p>
 "@
-    #Below scopes are needed to view permissions correctly as per https://learn.microsoft.com/en-us/azure/active-directory/manage-apps/manage-application-permissions?pivots=ms-powershell
-    Connect-MgGraph -Scopes "Application.ReadWrite.All", "Directory.ReadWrite.All", "DelegatedPermissionGrant.ReadWrite.All", "AppRoleAssignment.ReadWrite.All" -TenantId $tenantId | Out-Null
-    $miServicePrincipals = Get-MgServicePrincipal -Filter "ServicePrincipalType eq 'ManagedIdentity'"
+    #Read access is sufficient to list service principals and their app role assignments.
+    Connect-MgGraph -Scopes "Application.Read.All" -TenantId $tenantId | Out-Null
+    $miServicePrincipals = Get-MgServicePrincipal -Filter "ServicePrincipalType eq 'ManagedIdentity'" -All
     #Use the Id from the output of the above $miServicePrincipals for the appropriate Service Principal
     ##The Id from the previous cmdlet is then used as the -ServicePrincipalId in the below cmdlet
-    #The below OAuth2 cmdlet may be empty
     $output = @()
     foreach ($miServicePrincipal in $miServicePrincipals)
     {
-        #Need to test if the below $spOAuth2PermissionsGrants is needed. Need to setup and test.
-        $spOAuth2PermissionsGrants = Get-MgOauth2PermissionGrant -All| Where-Object { $_.clientId -eq $miServicePrincipal.Id }
         #Get the application permissions that have been granted. Returned AppRoleId is used to compare in foreach loop. 
         $spApplicationPermissions = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $miServicePrincipal.Id -All
         #$findMgGraphPermissions is the list of permissions avaiable. Used to compare what has been granted to what is available in the foreach loop.
